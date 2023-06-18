@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class WebViewStack extends StatefulWidget {
-  const WebViewStack({required this.controller, super.key});
+  const WebViewStack(
+      {required this.controller, required this.loadUrlBool, super.key});
 
   final WebViewController controller;
+  final bool loadUrlBool;
 
   @override
   State<WebViewStack> createState() => _WebViewStackState();
 }
 
 class _WebViewStackState extends State<WebViewStack> {
-  var loadingPercentage = 0;
+  int loadingPercentage = 0;
+  bool errWebView = false;
 
   @override
   void initState() {
@@ -50,7 +53,6 @@ class _WebViewStackState extends State<WebViewStack> {
           },
         ),
       )
-      // Modify from here...
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..addJavaScriptChannel(
         'SnackBar',
@@ -59,20 +61,27 @@ class _WebViewStackState extends State<WebViewStack> {
               .showSnackBar(SnackBar(content: Text(message.message)));
         },
       );
-    // ...to here.
   }
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        WebViewWidget(
-          controller: widget.controller,
-        ),
+        if (widget.loadUrlBool)
+          WebViewWidget(
+            controller: widget.controller,
+          ),
         if (loadingPercentage < 100)
           LinearProgressIndicator(
             value: loadingPercentage / 100.0,
           ),
+        if (!widget.loadUrlBool)
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          )
       ],
     );
   }

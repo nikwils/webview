@@ -1,14 +1,15 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:safe_device/safe_device.dart';
-import 'package:test_webview/fb_remote_config.dart';
-import 'package:test_webview/stub_page.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import 'package:test_webview/fb_remote_config.dart';
 import 'package:test_webview/firebase_options.dart';
 import 'package:test_webview/menu.dart';
 import 'package:test_webview/navigation_controls.dart';
+import 'package:test_webview/stub_page.dart';
 import 'package:test_webview/web_view_stack.dart';
 
 void main() async {
@@ -16,6 +17,8 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
+      overlays: [SystemUiOverlay.top]);
   FBRemoteConfig();
   runApp(
     MultiProvider(
@@ -55,25 +58,14 @@ class _WebViewAppState extends State<WebViewApp> {
 
   @override
   Widget build(BuildContext context) {
-    bool ready = context.watch<FBRemoteConfig>().ready;
-    if (ready) {
+    bool haveUrl = context.watch<FBRemoteConfig>().haveUrl;
+
+    if (haveUrl) {
       final url = FBRemoteConfig.url;
-      if (url == '' || isRealDevice) {
+      if (url == '' || !isRealDevice) {
         return const StubPage();
       } else {
-        controller.loadRequest(
-          Uri.parse(url),
-        );
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Flutter WebView'),
-            actions: [
-              NavigationControls(controller: controller),
-              Menu(controller: controller),
-            ],
-          ),
-          body: WebViewStack(controller: controller),
-        );
+        return WebViewPage(controller: controller, url: url);
       }
     } else {
       return const Scaffold(
@@ -82,5 +74,31 @@ class _WebViewAppState extends State<WebViewApp> {
         ),
       );
     }
+  }
+}
+
+class WebViewPage extends StatelessWidget {
+  final WebViewController controller;
+  final String url;
+  const WebViewPage({
+    Key? key,
+    required this.controller,
+    required this.url,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    bool loadUrlBool = context.read<FBRemoteConfig>().loadUrl(controller, url);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Flutter WebView'),
+        actions: [
+          NavigationControls(controller: controller),
+          Menu(controller: controller),
+        ],
+      ),
+      body: WebViewStack(controller: controller, loadUrlBool: loadUrlBool),
+    );
   }
 }

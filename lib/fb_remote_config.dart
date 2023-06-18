@@ -1,33 +1,63 @@
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 class FBRemoteConfig extends ChangeNotifier {
   static const keyUrl = 'key_url';
-  bool ready = false;
   static String url = '';
+  bool haveUrl = false;
+  bool loadWebViewPage = false;
+
+  final remoteConfig = FirebaseRemoteConfig.instance;
+
   FBRemoteConfig() {
     initialize();
   }
-  final remoteConfig = FirebaseRemoteConfig.instance;
-  initialize() async {
+
+  void initialize() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? localUrl = prefs.getString(keyUrl);
+
     await remoteConfig.setConfigSettings(RemoteConfigSettings(
       fetchTimeout: const Duration(minutes: 1),
       minimumFetchInterval: const Duration(minutes: 5),
     ));
-    await remoteConfig.fetchAndActivate();
-    getString();
+
+    if (localUrl == null || localUrl == '') {
+      await remoteConfig.fetchAndActivate();
+      getUrl(prefs);
+    } else {
+      getLocalUrl(localUrl);
+    }
   }
 
-  getString() {
-    url = remoteConfig.getString(keyUrl);
+  bool loadUrl(WebViewController controller, String url) {
+    if (!loadWebViewPage) {
+      controller
+          .loadRequest(
+        Uri.parse(url),
+      )
+          .then((value) {
+        loadWebViewPage = true;
 
-    ready = true;
+        notifyListeners();
+      }).timeout(const Duration(seconds: 10));
+    }
+
+    return loadWebViewPage;
+  }
+
+  void getUrl(SharedPreferences prefs) async {
+    url = remoteConfig.getString(keyUrl);
+    await prefs.setString(keyUrl, url);
+    haveUrl = true;
     notifyListeners();
   }
 
-  update() {
-    remoteConfig.onConfigUpdated.listen((event) async {
-      await remoteConfig.activate();
-    });
+  void getLocalUrl(String localUrl) {
+    url = localUrl;
+    haveUrl = true;
+    notifyListeners();
   }
 }

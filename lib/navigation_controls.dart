@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:test_webview/fb_remote_config.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class NavigationControls extends StatelessWidget {
@@ -11,7 +13,7 @@ class NavigationControls extends StatelessWidget {
     return Row(
       children: <Widget>[
         IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.grey),
+          icon: const Icon(Icons.arrow_back_ios),
           onPressed: () async {
             final messenger = ScaffoldMessenger.of(context);
             if (await controller.canGoBack()) {
@@ -41,7 +43,7 @@ class NavigationControls extends StatelessWidget {
         IconButton(
           icon: const Icon(Icons.replay),
           onPressed: () {
-            controller.reload();
+            context.read<FBRemoteConfig>().initialize();
           },
         ),
       ],
